@@ -50,13 +50,15 @@ function generateToken(): string {
 
 function getBackendPath(): string {
   const candidates = [
+    join(process.resourcesPath, 'backend', 'aura', 'main.py'),
+    join(process.resourcesPath, 'backend', 'main.py'),
     join(__dirname, '..', '..', '..', '..', 'backend', 'aura', 'main.py'),
+    join(__dirname, '..', '..', '..', '..', '..', '..', '..', '..', 'backend', 'aura', 'main.py'),
     join(process.cwd(), 'backend', 'aura', 'main.py'),
     join(process.cwd(), '..', 'backend', 'aura', 'main.py'),
     join(process.cwd(), '..', '..', 'backend', 'aura', 'main.py'),
     join(app.getAppPath(), '..', 'backend', 'aura', 'main.py'),
-    join(process.resourcesPath, 'backend', 'aura', 'main.py'),
-    join(process.resourcesPath, 'backend', 'main.py'),
+    'C:\\Users\\TRB\\modified mindspace sdg\\CrediAI\\AURA.AI\\backend\\aura\\main.py',
   ]
   for (const c of candidates) {
     if (fs.existsSync(c)) return c
