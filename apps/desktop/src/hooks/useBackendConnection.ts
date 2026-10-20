@@ -47,7 +47,7 @@ export function useBackendConnection() {
     const checkDirectBackend = async () => {
       const port = 49200
       try {
-        const res = await fetch(`http://127.0.0.1:${port}/auth/status`, {
+        const res = await fetch(`http://127.0.0.1:${port}/health`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
         })
@@ -65,7 +65,7 @@ export function useBackendConnection() {
           setInfo({
             port,
             status: 'error',
-            error: 'Backend is offline or starting...',
+            error: 'Unable to connect to AURA backend',
           })
         }
       }

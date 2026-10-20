@@ -35,7 +35,7 @@ export interface StreamChunk {
 class AuraApiService {
   private getBase(): string {
     const url = useBackendStore.getState().getBaseUrl()
-    if (!url) throw new Error('Backend not connected')
+    if (!url) throw new Error('Unable to connect to AURA backend')
     return url
   }
 
@@ -46,12 +46,33 @@ class AuraApiService {
     }
   }
 
+  private handleNetworkError(err: unknown): never {
+    const msg = err instanceof Error ? err.message : String(err || '')
+    if (
+      err instanceof TypeError ||
+      msg.includes('Failed to fetch') ||
+      msg.includes('fetch failed') ||
+      msg.includes('NetworkError') ||
+      msg.includes('Network request failed') ||
+      msg.includes('Backend not connected') ||
+      msg.includes('ECONNREFUSED') ||
+      msg.includes('Unable to connect')
+    ) {
+      throw new Error('Unable to connect to AURA backend')
+    }
+    throw err
+  }
+
   async health(): Promise<HealthResponse> {
-    const res = await fetch(`${this.getBase()}/health`, {
-      headers: this.getHeaders(),
-    })
-    if (!res.ok) throw new Error(`Health check failed: ${res.status}`)
-    return res.json()
+    try {
+      const res = await fetch(`${this.getBase()}/health`, {
+        headers: this.getHeaders(),
+      })
+      if (!res.ok) throw new Error(`Health check failed: ${res.status}`)
+      return await res.json()
+    } catch (err) {
+      this.handleNetworkError(err)
+    }
   }
 
   async sendCommand(
@@ -59,64 +80,96 @@ class AuraApiService {
     conversationId: string,
     options?: { stream?: boolean }
   ): Promise<CommandResponse> {
-    const res = await fetch(`${this.getBase()}/agent/command`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({
-        text,
-        conversation_id: conversationId,
-        stream: options?.stream ?? false,
-      }),
-    })
-    if (!res.ok) {
-      const err = await res.text()
-      throw new Error(`Command failed (${res.status}): ${err}`)
+    try {
+      const res = await fetch(`${this.getBase()}/agent/command`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          text,
+          conversation_id: conversationId,
+          stream: options?.stream ?? false,
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.text()
+        throw new Error(`Command failed (${res.status}): ${err}`)
+      }
+      return await res.json()
+    } catch (err) {
+      this.handleNetworkError(err)
     }
-    return res.json()
   }
 
   async cancelTask(taskId: string): Promise<void> {
-    await fetch(`${this.getBase()}/agent/cancel/${taskId}`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-    })
+    try {
+      await fetch(`${this.getBase()}/agent/cancel/${taskId}`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+      })
+    } catch (err) {
+      this.handleNetworkError(err)
+    }
   }
 
   async cancelAll(): Promise<void> {
-    await fetch(`${this.getBase()}/agent/cancel-all`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-    })
+    try {
+      await fetch(`${this.getBase()}/agent/cancel-all`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+      })
+    } catch (err) {
+      this.handleNetworkError(err)
+    }
   }
 
   async getApps(): Promise<{ apps: import('@/types/aura').AppInfo[] }> {
-    const res = await fetch(`${this.getBase()}/apps`, {
-      headers: this.getHeaders(),
-    })
-    return res.json()
+    try {
+      const res = await fetch(`${this.getBase()}/apps`, {
+        headers: this.getHeaders(),
+      })
+      if (!res.ok) throw new Error(`Failed to fetch apps: ${res.status}`)
+      return await res.json()
+    } catch (err) {
+      this.handleNetworkError(err)
+    }
   }
 
   async getTasks(): Promise<{ tasks: import('@/types/aura').ScheduledTask[] }> {
-    const res = await fetch(`${this.getBase()}/tasks`, {
-      headers: this.getHeaders(),
-    })
-    return res.json()
+    try {
+      const res = await fetch(`${this.getBase()}/tasks`, {
+        headers: this.getHeaders(),
+      })
+      if (!res.ok) throw new Error(`Failed to fetch tasks: ${res.status}`)
+      return await res.json()
+    } catch (err) {
+      this.handleNetworkError(err)
+    }
   }
 
   async getMemories(): Promise<{ memories: import('@/types/aura').Memory[] }> {
-    const res = await fetch(`${this.getBase()}/memory`, {
-      headers: this.getHeaders(),
-    })
-    return res.json()
+    try {
+      const res = await fetch(`${this.getBase()}/memory`, {
+        headers: this.getHeaders(),
+      })
+      if (!res.ok) throw new Error(`Failed to fetch memories: ${res.status}`)
+      return await res.json()
+    } catch (err) {
+      this.handleNetworkError(err)
+    }
   }
 
   async saveMemory(content: string, category = 'user_preference'): Promise<{ success: boolean; id?: number; error?: string }> {
-    const res = await fetch(`${this.getBase()}/memory`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({ content, category }),
-    })
-    return res.json()
+    try {
+      const res = await fetch(`${this.getBase()}/memory`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ content, category }),
+      })
+      if (!res.ok) throw new Error(`Failed to save memory: ${res.status}`)
+      return await res.json()
+    } catch (err) {
+      this.handleNetworkError(err)
+    }
   }
 
   async getAuthStatus(): Promise<{
@@ -126,44 +179,62 @@ class AuraApiService {
     lockout_remaining_seconds: number
     attempts_remaining: number
   }> {
-    const res = await fetch(`${this.getBase()}/auth/status`, {
-      headers: this.getHeaders(),
-    })
-    return res.json()
+    try {
+      const res = await fetch(`${this.getBase()}/auth/status`, {
+        headers: this.getHeaders(),
+      })
+      if (!res.ok) throw new Error(`Auth status failed (${res.status})`)
+      return await res.json()
+    } catch (err) {
+      this.handleNetworkError(err)
+    }
   }
 
   async setupPassword(password: string, confirmPassword: string): Promise<{ success: boolean; message?: string; error?: string }> {
-    const res = await fetch(`${this.getBase()}/auth/setup`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({ password, confirm_password: confirmPassword }),
-    })
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Failed to set password' }))
-      throw new Error(err.detail || 'Failed to set password')
+    try {
+      const res = await fetch(`${this.getBase()}/auth/setup`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ password, confirm_password: confirmPassword }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: 'Failed to set password' }))
+        throw new Error(err.detail || 'Failed to set password')
+      }
+      return await res.json()
+    } catch (err) {
+      this.handleNetworkError(err)
     }
-    return res.json()
   }
 
   async unlock(password: string): Promise<{ success: boolean; message?: string; error?: string }> {
-    const res = await fetch(`${this.getBase()}/auth/unlock`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({ password }),
-    })
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Invalid password' }))
-      throw new Error(err.detail || 'Invalid password')
+    try {
+      const res = await fetch(`${this.getBase()}/auth/unlock`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ password }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: 'Invalid password' }))
+        throw new Error(err.detail || 'Invalid password')
+      }
+      return await res.json()
+    } catch (err) {
+      this.handleNetworkError(err)
     }
-    return res.json()
   }
 
   async lock(): Promise<{ success: boolean; is_locked: boolean }> {
-    const res = await fetch(`${this.getBase()}/auth/lock`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-    })
-    return res.json()
+    try {
+      const res = await fetch(`${this.getBase()}/auth/lock`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+      })
+      if (!res.ok) throw new Error('Lock request failed')
+      return await res.json()
+    } catch (err) {
+      this.handleNetworkError(err)
+    }
   }
 
   async authHeartbeat(): Promise<void> {

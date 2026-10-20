@@ -27,8 +27,10 @@ export function PasswordLockScreen({ onUnlocked }: PasswordLockScreenProps) {
         setLockoutRemaining(status.lockout_remaining_seconds)
       }
       setAttemptsRemaining(status.attempts_remaining)
+      // Clear offline error if connection restored
+      setError((prev) => (prev === 'Unable to connect to AURA backend' ? null : prev))
     } catch {
-      // Backend starting up or default to setup
+      // Backend is offline or starting up
       setIsSetupMode(false)
     }
   }
@@ -91,7 +93,20 @@ export function PasswordLockScreen({ onUnlocked }: PasswordLockScreenProps) {
         setTimeout(() => onUnlocked(), 800)
       }
     } catch (err: any) {
-      setError(err?.message || 'Authentication failed. Please check your password.')
+      const msg = String(err?.message || '')
+      if (
+        msg.includes('Unable to connect to AURA backend') ||
+        msg.includes('Failed to fetch') ||
+        msg.includes('fetch failed') ||
+        msg.includes('NetworkError') ||
+        msg.includes('Network request failed') ||
+        msg.includes('ECONNREFUSED') ||
+        err?.name === 'TypeError'
+      ) {
+        setError('Unable to connect to AURA backend')
+      } else {
+        setError(msg || 'Authentication failed. Please check your password.')
+      }
       // Refresh status to update attempts
       checkStatus()
     } finally {

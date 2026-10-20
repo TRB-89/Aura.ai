@@ -49,39 +49,52 @@ function generateToken(): string {
 }
 
 function getBackendPath(): string {
-  // In development, use the source path
-  const devPath = join(__dirname, '..', '..', '..', '..', 'backend', 'aura', 'main.py')
-  if (fs.existsSync(devPath)) return devPath
-  // In production, use packaged path
-  return join(process.resourcesPath, 'backend', 'main.py')
+  const candidates = [
+    join(__dirname, '..', '..', '..', '..', 'backend', 'aura', 'main.py'),
+    join(process.cwd(), 'backend', 'aura', 'main.py'),
+    join(process.cwd(), '..', 'backend', 'aura', 'main.py'),
+    join(process.cwd(), '..', '..', 'backend', 'aura', 'main.py'),
+    join(app.getAppPath(), '..', 'backend', 'aura', 'main.py'),
+    join(process.resourcesPath, 'backend', 'aura', 'main.py'),
+    join(process.resourcesPath, 'backend', 'main.py'),
+  ]
+  for (const c of candidates) {
+    if (fs.existsSync(c)) return c
+  }
+  return candidates[0]
 }
 
 function getPythonExecutable(): string {
-  // Try common Windows Python locations
-  const candidates = [
-    'python',
-    'python3',
+  if (process.env.PYTHON_PATH && fs.existsSync(process.env.PYTHON_PATH)) {
+    return process.env.PYTHON_PATH
+  }
+  // Try verified Windows Python install paths first
+  const specificPaths = [
     join(os.homedir(), 'AppData', 'Local', 'Programs', 'Python', 'Python313', 'python.exe'),
     join(os.homedir(), 'AppData', 'Local', 'Programs', 'Python', 'Python312', 'python.exe'),
     join(os.homedir(), 'AppData', 'Local', 'Programs', 'Python', 'Python311', 'python.exe'),
+    join(os.homedir(), 'AppData', 'Local', 'Programs', 'Python', 'Python310', 'python.exe'),
+    'C:\\Program Files\\Python313\\python.exe',
+    'C:\\Program Files\\Python312\\python.exe',
+    'C:\\Program Files\\Python311\\python.exe',
   ]
-  for (const candidate of candidates) {
-    if (candidate === 'python' || candidate === 'python3') return candidate
+  for (const p of specificPaths) {
+    if (fs.existsSync(p)) return p
   }
   return 'python'
 }
 
 // ─── Python Backend Lifecycle ─────────────────────────────────────────────────
 
-async function checkBackendHealth(port: number, token: string): Promise<boolean> {
+async function checkBackendHealth(port: number, token?: string): Promise<boolean> {
   return new Promise((resolve) => {
     const options = {
       hostname: '127.0.0.1',
       port,
       path: '/health',
       method: 'GET',
-      headers: { Authorization: `Bearer ${token}` },
-      timeout: 3000,
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      timeout: 2000,
     }
     const req = http.request(options, (res) => {
       resolve(res.statusCode === 200)
@@ -102,15 +115,29 @@ async function waitForBackend(port: number, token: string, maxAttempts = 30): Pr
   return false
 }
 
-function startPythonBackend(): void {
-  const port = getRandomPort()
-  const token = generateToken()
+async function startPythonBackend(): Promise<void> {
+  const preferredPort = process.env.AURA_PORT ? parseInt(process.env.AURA_PORT, 10) : 49200
+
+  // Check if an existing AURA backend instance is already running
+  const alreadyRunning = await checkBackendHealth(preferredPort)
+  if (alreadyRunning) {
+    console.log(`[Main] Connected to existing AURA backend on port ${preferredPort}`)
+    backendPort = preferredPort
+    backendToken = process.env.AURA_TOKEN || 'dev-insecure-token'
+    backendHealth = { status: 'ready', port: preferredPort }
+    mainWindow?.webContents.send('backend:status', backendHealth)
+    return
+  }
+
+  const port = preferredPort
+  const token = process.env.AURA_TOKEN || generateToken()
   backendPort = port
   backendToken = token
   backendHealth = { status: 'starting', port }
 
   const backendFile = getBackendPath()
   const python = getPythonExecutable()
+  const backendDir = dirname(dirname(backendFile))
 
   console.log(`[Main] Starting Python backend: ${python} ${backendFile}`)
   console.log(`[Main] Backend port: ${port}`)
@@ -121,13 +148,22 @@ function startPythonBackend(): void {
     AURA_TOKEN: token,
     AURA_HOST: '127.0.0.1',
     PYTHONUNBUFFERED: '1',
+    PYTHONPATH: backendDir,
   }
 
-  pythonProcess = spawn(python, [backendFile], {
-    env,
-    stdio: ['pipe', 'pipe', 'pipe'],
-    windowsHide: true,
-  })
+  try {
+    pythonProcess = spawn(python, [backendFile], {
+      env,
+      cwd: backendDir,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      windowsHide: true,
+    })
+  } catch (err: any) {
+    console.error('[Main] Exception spawning Python backend:', err)
+    backendHealth = { status: 'error', port: null, error: err.message }
+    mainWindow?.webContents.send('backend:status', backendHealth)
+    return
+  }
 
   pythonProcess.stdout?.on('data', (data: Buffer) => {
     const line = data.toString().trim()
@@ -144,7 +180,6 @@ function startPythonBackend(): void {
     backendHealth = { status: 'stopped', port: null, error: `Process exited with code ${code}` }
     if (!isQuitting) {
       mainWindow?.webContents.send('backend:status', backendHealth)
-      // Auto-restart after 3 seconds if not quitting
       setTimeout(() => {
         if (!isQuitting) {
           console.log('[Main] Auto-restarting backend...')

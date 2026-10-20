@@ -2,10 +2,12 @@
 AURA Authentication API Router
 Exposes local password management and unlock endpoints.
 """
+import logging
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from aura.security.auth_service import auth_service
 
+logger = logging.getLogger("aura.auth")
 auth_router = APIRouter(tags=["auth"])
 
 
@@ -20,14 +22,18 @@ class UnlockRequest(BaseModel):
 
 @auth_router.get("/status")
 async def get_auth_status():
-    return auth_service.get_status()
+    status = auth_service.get_status()
+    return status
 
 
 @auth_router.post("/setup")
 async def setup_password(payload: SetupPasswordRequest):
+    logger.info("Processing password setup request...")
     result = auth_service.setup_password(payload.password, payload.confirm_password)
     if not result.get("success"):
+        logger.warning(f"Password setup failed: {result.get('error')}")
         raise HTTPException(status_code=400, detail=result.get("error"))
+    logger.info("Password setup successful.")
     return result
 
 
@@ -35,7 +41,9 @@ async def setup_password(payload: SetupPasswordRequest):
 async def unlock_app(payload: UnlockRequest):
     result = auth_service.unlock(payload.password)
     if not result.get("success"):
+        logger.warning(f"Unlock failed: {result.get('error')}")
         raise HTTPException(status_code=401, detail=result.get("error"))
+    logger.info("Unlock successful.")
     return result
 
 

@@ -57,56 +57,64 @@ async def run_tests():
 
     # 3. Argon2id Password Setup, Verification & Lockout
     print("\n[Test 3] Argon2id Local Authentication & Brute-Force Lockout...")
-    # Clean previous test auth file if exists for clean run
+    original_auth_backup = None
     if AUTH_CONFIG_FILE.exists():
+        original_auth_backup = AUTH_CONFIG_FILE.read_text(encoding="utf-8")
         AUTH_CONFIG_FILE.unlink()
 
-    # Reset in-memory state
-    auth_service.is_locked = True
-    auth_service.failed_attempts = 0
-    auth_service.lockout_until = 0.0
+    try:
+        # Reset in-memory state
+        auth_service.is_locked = True
+        auth_service.failed_attempts = 0
+        auth_service.lockout_until = 0.0
 
-    assert not auth_service.is_setup(), "Auth should report not setup before initial password"
+        assert not auth_service.is_setup(), "Auth should report not setup before initial password"
 
-    # Reject short password
-    short_res = auth_service.setup_password("123", "123")
-    assert not short_res.get("success"), "Short password should be rejected"
+        # Reject short password
+        short_res = auth_service.setup_password("123", "123")
+        assert not short_res.get("success"), "Short password should be rejected"
 
-    # Reject mismatched passwords
-    mismatch_res = auth_service.setup_password("secret123", "secret999")
-    assert not mismatch_res.get("success"), "Mismatched passwords should be rejected"
+        # Reject mismatched passwords
+        mismatch_res = auth_service.setup_password("secret123", "secret999")
+        assert not mismatch_res.get("success"), "Mismatched passwords should be rejected"
 
-    # Setup valid passcode
-    setup_res = auth_service.setup_password("2089", "2089")
-    assert setup_res.get("success"), f"Setup failed: {setup_res}"
-    assert auth_service.is_setup(), "Auth should report setup"
-    assert not auth_service.is_locked, "Auth should unlock upon initial setup"
+        # Setup valid passcode
+        setup_res = auth_service.setup_password("2089", "2089")
+        assert setup_res.get("success"), f"Setup failed: {setup_res}"
+        assert auth_service.is_setup(), "Auth should report setup"
+        assert not auth_service.is_locked, "Auth should unlock upon initial setup"
 
-    # Verify storage in AppData and NO plaintext stored
-    assert AUTH_CONFIG_FILE.exists(), f"Auth config file not found at {AUTH_CONFIG_FILE}"
-    with open(AUTH_CONFIG_FILE, "r", encoding="utf-8") as f:
-        stored_data = json.load(f)
-    assert "password_hash" in stored_data, "Password hash missing from config"
-    assert "$argon2id$" in stored_data["password_hash"], "Hash must be Argon2id!"
-    assert "2089" not in json.dumps(stored_data), "Plaintext passcode must NEVER be stored!"
-    print(f"  -> Argon2id Hash verified in {AUTH_CONFIG_FILE.name}")
+        # Verify storage in AppData and NO plaintext stored
+        assert AUTH_CONFIG_FILE.exists(), f"Auth config file not found at {AUTH_CONFIG_FILE}"
+        with open(AUTH_CONFIG_FILE, "r", encoding="utf-8") as f:
+            stored_data = json.load(f)
+        assert "password_hash" in stored_data, "Password hash missing from config"
+        assert "$argon2id$" in stored_data["password_hash"], "Hash must be Argon2id!"
+        assert "2089" not in json.dumps(stored_data), "Plaintext passcode must NEVER be stored!"
+        print(f"  -> Argon2id Hash verified in {AUTH_CONFIG_FILE.name}")
 
-    # Test lock & unlock
-    auth_service.lock()
-    assert auth_service.is_locked, "Auth should be locked"
+        # Test lock & unlock
+        auth_service.lock()
+        assert auth_service.is_locked, "Auth should be locked"
 
-    # Test incorrect password rejection
-    bad_unlock = auth_service.unlock("wrong_password")
-    assert not bad_unlock.get("success"), "Wrong password must be rejected"
-    assert auth_service.failed_attempts == 1, "Failed attempts count should increment"
-    print("  -> Incorrect password rejected cleanly.")
+        # Test incorrect password rejection
+        bad_unlock = auth_service.unlock("wrong_password")
+        assert not bad_unlock.get("success"), "Wrong password must be rejected"
+        assert auth_service.failed_attempts == 1, "Failed attempts count should increment"
+        print("  -> Incorrect password rejected cleanly.")
 
-    # Test valid passcode unlock
-    good_unlock = auth_service.unlock("2089")
-    assert good_unlock.get("success"), "Valid passcode must unlock"
-    assert not auth_service.is_locked, "Auth should now be unlocked"
-    assert auth_service.failed_attempts == 0, "Failed attempts should reset on success"
-    print("  -> PASSED: Argon2id setup, unlock, and security verified.")
+        # Test valid passcode unlock
+        good_unlock = auth_service.unlock("2089")
+        assert good_unlock.get("success"), "Valid passcode must unlock"
+        assert not auth_service.is_locked, "Auth should now be unlocked"
+        assert auth_service.failed_attempts == 0, "Failed attempts should reset on success"
+        print("  -> PASSED: Argon2id setup, unlock, and security verified.")
+    finally:
+        if original_auth_backup is not None:
+            AUTH_CONFIG_FILE.write_text(original_auth_backup, encoding="utf-8")
+            auth_service.is_locked = True
+            auth_service.failed_attempts = 0
+            auth_service.lockout_until = 0.0
 
     # 4. Memory Execution Test
     print("\n[Test 4] Memory Storage & Search...")

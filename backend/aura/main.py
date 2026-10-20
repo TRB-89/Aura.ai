@@ -91,12 +91,13 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Only allow local connections
+# Allow local connections (Electron file:// origin null, local browser, Vite dev)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[f"http://localhost:5173", f"http://127.0.0.1:5173"],
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
-    allow_headers=["Authorization", "Content-Type"],
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -107,9 +108,9 @@ async def verify_token(request: Request):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
 
-# ─── Health endpoint (used by Electron health check) ─────────────────────────
+# ─── Health endpoint (used by Electron & frontend health checks) ─────────────
 @app.get("/health")
-async def health(_: None = Depends(verify_token)):
+async def health():
     return {
         "status": "ok",
         "version": "0.1.0",
