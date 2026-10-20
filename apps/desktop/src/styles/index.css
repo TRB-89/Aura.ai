@@ -1,0 +1,147 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Base Reset & Luxury Typography ───────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+  background-color: #0A0B0E;
+  color: #F8F6F2;
+  font-family: 'Plus Jakarta Sans', 'Outfit', 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Custom Luxury Scrollbar ─────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(197, 155, 109, 0.35);
+}
+
+/* ─── Drag Region (Electron frameless window) ────────────────────────────── */
+.drag-region {
+  -webkit-app-region: drag;
+}
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* ─── Ultra-Premium Matte Black Cards ─────────────────────────────────────── */
+.luxury-card {
+  background: #141519;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7);
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.luxury-card:hover {
+  border-color: rgba(232, 213, 196, 0.18);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85), 0 0 1px 1px rgba(232, 213, 196, 0.1);
+}
+
+.luxury-card-elevated {
+  background: #1B1D23;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.8);
+}
+
+/* ─── Luxury Warm Bronze & Beige Orb Glow Layers ──────────────────────────── */
+.orb-luxury-idle {
+  background: radial-gradient(circle at 35% 30%, #E8D5C4 0%, #C59B6D 40%, #1A1815 80%);
+  box-shadow:
+    0 0 50px rgba(197, 155, 109, 0.3),
+    0 0 100px rgba(232, 213, 196, 0.15),
+    inset 0 0 35px rgba(232, 213, 196, 0.4);
+}
+
+.orb-luxury-listening {
+  background: radial-gradient(circle at 35% 30%, #F4EBE1 0%, #D8A870 45%, #251D14 85%);
+  box-shadow:
+    0 0 70px rgba(216, 168, 112, 0.55),
+    0 0 130px rgba(244, 235, 225, 0.25),
+    inset 0 0 45px rgba(244, 235, 225, 0.6);
+}
+
+.orb-luxury-thinking {
+  background: radial-gradient(circle at 35% 30%, #E8D5C4 0%, #9A744E 50%, #131215 85%);
+  box-shadow:
+    0 0 65px rgba(197, 155, 109, 0.45),
+    0 0 120px rgba(154, 116, 78, 0.25);
+}
+
+.orb-luxury-speaking {
+  background: radial-gradient(circle at 35% 30%, #F4EBE1 0%, #4EBA88 50%, #141B18 85%);
+  box-shadow:
+    0 0 60px rgba(78, 186, 136, 0.45),
+    0 0 120px rgba(232, 213, 196, 0.2),
+    inset 0 0 35px rgba(78, 186, 136, 0.3);
+}
+
+.orb-luxury-error {
+  background: radial-gradient(circle at 35% 30%, #E26D77 0%, #96353D 55%, #180D0F 85%);
+  box-shadow:
+    0 0 55px rgba(226, 109, 119, 0.45),
+    0 0 100px rgba(150, 53, 61, 0.25);
+}
+
+/* ─── Subtle Ambient Background Glow ──────────────────────────────────────── */
+.ambient-glow-top {
+  position: absolute;
+  top: -150px;
+  right: -100px;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(197, 155, 109, 0.04) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.ambient-glow-bottom {
+  position: absolute;
+  bottom: -200px;
+  left: 200px;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(232, 213, 196, 0.03) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ─── Status Indicator Pulse ──────────────────────────────────────────────── */
+@keyframes statusPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.92); }
+}
+.status-dot-pulse {
+  animation: statusPulse 2.4s ease-in-out infinite;
+}
+
+/* ─── Reduced Motion Support ─────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,114 @@
+# ==============================================================================
+# PROJECT AURA — Comprehensive Git Ignore Specification
+# Prevents any personal, private, secret, or runtime data from ever being committed
+# ==============================================================================
+
+# Secrets and Environment Variables
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+*.pfx
+
+# Local Databases, SQLite WAL, SHM, and Data Dumps
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+*.sql
+*.dump
+local_storage/
+app_data/
+aura_data/
+
+# Runtime Logs & Diagnostics
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Personal Audio, Voice Recordings & Cache
+recordings/
+*.wav
+*.mp3
+*.m4a
+*.ogg
+*.flac
+audio_cache/
+voice_samples/
+
+# Screenshots & Captured Media
+screenshots/
+captures/
+*.png_capture
+*.jpg_capture
+
+# Private Documents & Office Outputs
+documents/
+output_docs/
+generated/
+*.docx
+*.pptx
+*.xlsx
+
+# User Settings, Memory & Auth Tokens
+auth_state.json
+user_credentials.json
+user_preferences.json
+token.json
+session.json
+*.backup
+*.bak
+
+# Node & Frontend Build Artifacts
+node_modules/
+dist/
+dist-electron/
+release/
+dist-release/
+build/
+.vite/
+.turbo/
+
+# Python Cache & Virtual Environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# OS & IDE Metadata
+.DS_Store
+Thumbs.db
+Desktop.ini
+.vscode/
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~

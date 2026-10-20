@@ -1,0 +1,14 @@
+{
+  "name": "aura-root",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PROJECT AURA — Advanced Personal AI Desktop Companion",
+  "scripts": {
+    "dev:desktop": "npm --prefix apps/desktop run dev",
+    "build:desktop": "npm --prefix apps/desktop run build",
+    "type-check": "npm --prefix apps/desktop run type-check",
+    "test:backend": "python backend/tests/test_backend.py",
+    "test": "python scripts/test_all.py",
+    "start:backend": "python scripts/run_backend.py"
+  }
+}
